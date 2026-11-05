@@ -1,0 +1,9 @@
+{
+  "source_id": "example-source", "spec_id": "example-spec", "policy_version": "0.1",
+  "conditions": {
+    "gpu_model": {"value": "H20", "status": "explicit", "evidence": "示例资料，非真实实验"},
+    "gpu_count": {"value": 8, "status": "explicit", "evidence": "示例资料，非真实实验"},
+    "input_tokens": {"value": 8192, "status": "explicit", "evidence": "示例资料，非真实实验"}
+  },
+  "reference_metrics": {"output_tps": 800}, "repeats": 1, "tolerance": 0.1
+}

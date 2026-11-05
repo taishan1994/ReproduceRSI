@@ -1,0 +1,130 @@
+{
+  "date": "2026-11-04",
+  "metric": "TTFT mean and total throughput=input+output token/s",
+  "fixed": "TP2+PP2; vLLM0.27.1; V2 runner; warmup-skip compatibility patch; H20 GPU0-3; ISL8192/OSL1; no prefix caching; no custom all-reduce; graph sizes 1,2,4,8,16; max_num_seqs=32; one formal round; requests=10x concurrency",
+  "reference": {
+    "ttft_lt_1500_total_tok_s": 15775.08,
+    "ttft_lt_3000_total_tok_s": 15776.39
+  },
+  "variants": [
+    {
+      "points": [
+        {
+          "total_tok_s": 10526.381,
+          "pass_lt_1500": false,
+          "ttft_ms": 1514.436,
+          "c": 2
+        },
+        {
+          "total_tok_s": 19795.949,
+          "pass_lt_1500": true,
+          "ttft_ms": 1199.167,
+          "c": 3
+        },
+        {
+          "total_tok_s": 20016.535,
+          "pass_lt_3000": true,
+          "ttft_ms": 1574.9,
+          "c": 4
+        },
+        {
+          "total_tok_s": 20224.983,
+          "pass_lt_3000": true,
+          "ttft_ms": 2713.374,
+          "c": 7
+        }
+      ],
+      "max_num_batched_tokens": 8192,
+      "capture": "Graph16"
+    },
+    {
+      "points": [
+        {
+          "total_tok_s": 10531.601,
+          "pass_lt_1500": false,
+          "ttft_ms": 1513.512,
+          "c": 2
+        },
+        {
+          "total_tok_s": 20013.885,
+          "pass_lt_3000": true,
+          "ttft_ms": 1575.03,
+          "c": 4
+        }
+      ],
+      "max_num_batched_tokens": 8192,
+      "capture": "Graph24"
+    },
+    {
+      "points": [
+        {
+          "total_tok_s": 18900.18,
+          "pass_lt_1500": true,
+          "ttft_ms": 1263.495,
+          "c": 3
+        },
+        {
+          "total_tok_s": 19793.304,
+          "pass_lt_3000": true,
+          "ttft_ms": 2780.887,
+          "c": 7
+        }
+      ],
+      "max_num_batched_tokens": 6144,
+      "capture": "Graph16"
+    },
+    {
+      "points": [
+        {
+          "total_tok_s": 18876.515,
+          "pass_lt_1500": true,
+          "ttft_ms": 1257.357,
+          "c": 3
+        },
+        {
+          "total_tok_s": 19099.465,
+          "pass_lt_3000": true,
+          "ttft_ms": 2872.371,
+          "c": 7
+        }
+      ],
+      "max_num_batched_tokens": 4096,
+      "capture": "Graph16"
+    },
+    {
+      "points": [
+        {
+          "delta_vs_ref_pct": 7.44,
+          "ttft_ms": 1400.06,
+          "pass_throughput_tolerance": true,
+          "requests": 30,
+          "total_tok_s": 16948.565,
+          "c": 3,
+          "pass_lt_1500": true,
+          "run_id": "tp2pp2_prefill_mnbt2048_20261104_c3_r1"
+        },
+        {
+          "delta_vs_ref_pct": 8.1,
+          "total_tok_s": 17054.881,
+          "pass_throughput_tolerance": true,
+          "requests": 60,
+          "ttft_ms": 2759.842,
+          "pass_lt_3000": true,
+          "c": 6,
+          "run_id": "tp2pp2_prefill_mnbt2048_c6_20261104_c6_r1"
+        },
+        {
+          "delta_vs_ref_pct": 8.19,
+          "c": 7,
+          "run_id": "tp2pp2_prefill_mnbt2048_c7_20261104_c7_r1",
+          "ttft_ms": 3214.073,
+          "total_tok_s": 17068.15,
+          "requests": 70,
+          "pass_lt_3000": false
+        }
+      ],
+      "max_num_batched_tokens": 2048,
+      "capture": "Graph16"
+    }
+  ]
+}

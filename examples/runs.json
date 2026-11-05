@@ -1,0 +1,5 @@
+[
+  {"run_id":"example-1", "valid":true, "conditions":{"gpu_model":"H20","gpu_count":8,"input_tokens":8192}, "metrics":{"output_tps":780}},
+  {"run_id":"example-2", "valid":true, "conditions":{"gpu_model":"H20","gpu_count":8,"input_tokens":8192}, "metrics":{"output_tps":810}},
+  {"run_id":"example-3", "valid":true, "conditions":{"gpu_model":"H20","gpu_count":8,"input_tokens":8192}, "metrics":{"output_tps":800}}
+]

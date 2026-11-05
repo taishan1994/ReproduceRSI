@@ -1,0 +1,31 @@
+{
+  "source": "user_supplied",
+  "parallelism": "TP2+PP2",
+  "speculative_decoding": false,
+  "mtp": false,
+  "notes": "The pasted table rows are labeled TP4, but the user explicitly clarified these measurements are TP2+PP2 without MTP; record according to that clarification.",
+  "throughput_definition": "input + output tokens/s",
+  "points": [
+    {
+      "total_tok_s": 3452,
+      "input_tok_s": 3068.36,
+      "mean_tpot_ms": 8.806,
+      "concurrency": 4,
+      "output_tok_s": 383.54
+    },
+    {
+      "total_tok_s": 6680,
+      "input_tok_s": 5937.91,
+      "mean_tpot_ms": 18.73,
+      "concurrency": 16,
+      "output_tok_s": 742.24
+    },
+    {
+      "total_tok_s": 8118,
+      "input_tok_s": 7215.64,
+      "mean_tpot_ms": 29.99,
+      "concurrency": 30,
+      "output_tok_s": 901.96
+    }
+  ]
+}

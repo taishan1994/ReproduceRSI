@@ -1,0 +1,3 @@
+https://www.modelscope.cn/models/deepseek-ai/DeepSeek-V4-Flash-0731
+https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B-Diffusers
+unsloth/MiniMax-H3-FP8

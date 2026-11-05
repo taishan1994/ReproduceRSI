@@ -1,0 +1,94 @@
+{
+  "source_id": "PRO6000D-deepseek-v4-flash-prefill2-image",
+  "spec_id": "h20-dsv4-flash-tp2pp2-prefill-v2",
+  "policy_version": "0.5-user-mean-total-single-round",
+  "conditions": {
+    "gpu_model": {
+      "value": "H20",
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-prefill2.png"
+    },
+    "gpu_count": {
+      "value": 4,
+      "status": "derived",
+      "evidence": "TP2 and PP2, assuming a single replica"
+    },
+    "model": {
+      "value": "DeepSeek-V4-Flash-0731",
+      "status": "assumed",
+      "evidence": "resources/model_resources.txt; screenshot does not specify revision"
+    },
+    "tensor_parallel": {
+      "value": 2,
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-prefill2.png"
+    },
+    "pipeline_parallel": {
+      "value": 2,
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-prefill2.png"
+    },
+    "input_tokens": {
+      "value": 8192,
+      "status": "assumed",
+      "evidence": "screenshot says ISL=8K"
+    },
+    "output_tokens": {
+      "value": 1,
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-prefill2.png"
+    },
+    "framework": {
+      "value": "vllm 0.27.1",
+      "status": "explicit",
+      "evidence": "H20 footer in screenshot"
+    },
+    "quantization": {
+      "value": "MXFP4+FP8",
+      "status": "explicit",
+      "evidence": "screenshot subtitle"
+    },
+    "kv_cache_dtype": {
+      "value": "fp8",
+      "status": "explicit",
+      "evidence": "screenshot subtitle"
+    },
+    "skip_v2_decode_warmup": {
+      "value": 1,
+      "status": "explicit",
+      "evidence": "H20 footer in screenshot; current vLLM warmup.py needed the isolated v2_skip_decode_warmup.patch to honor it"
+    },
+    "custom_all_reduce": {
+      "value": "disabled",
+      "status": "assumed",
+      "evidence": "The screenshot does not specify this flag; current TP2+PP2 target service uses --disable-custom-all-reduce per the user's experiment instruction"
+    },
+    "cuda_graph_capture_sizes": {
+      "value": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "status": "assumed",
+      "evidence": "The screenshot does not specify capture sizes; this is the current TP2+PP2 Prefill launch configuration"
+    },
+    "max_num_batched_tokens": {
+      "value": 2048,
+      "status": "assumed",
+      "evidence": "Screenshot omits this parameter; single-variable RSI search found 2048 is the tested value that places both TTFT and total throughput within configured tolerance."
+    },
+    "throughput_definition": {
+      "value": "input_plus_output_tokens_per_benchmark_duration",
+      "status": "explicit",
+      "evidence": "User confirmed total input plus output token throughput"
+    }
+  },
+  "reference_metrics": {
+    "ttft_lt_1500ms_throughput": 15775.08,
+    "ttft_lt_3000ms_throughput": 15776.39
+  },
+  "repeats": 1,
+  "tolerance": 0.1
+}

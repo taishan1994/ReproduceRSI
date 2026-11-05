@@ -1,0 +1,79 @@
+{
+  "source_id": "PRO6000D-deepseek-v4-flash-decode-image",
+  "spec_id": "h20-dsv4-flash-tp4-mtp1-decode-v1",
+  "policy_version": "0.5-user-mean-total-single-round",
+  "conditions": {
+    "gpu_model": {
+      "value": "H20",
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-decode.png"
+    },
+    "gpu_count": {
+      "value": 4,
+      "status": "derived",
+      "evidence": "TP4, assuming a single replica"
+    },
+    "model": {
+      "value": "DeepSeek-V4-Flash Preview",
+      "status": "assumed",
+      "evidence": "The screenshot does not specify the model revision; current MTP=1 data uses the locally available preview checkpoint"
+    },
+    "tensor_parallel": {
+      "value": 4,
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-decode.png"
+    },
+    "pipeline_parallel": {
+      "value": 1,
+      "status": "assumed",
+      "evidence": "TP4 screenshot does not specify PP; single-stage TP is used"
+    },
+    "input_tokens": {
+      "value": 8192,
+      "status": "assumed",
+      "evidence": "screenshot says ISL=8K"
+    },
+    "output_tokens": {
+      "value": 1024,
+      "status": "explicit",
+      "evidence": "screenshot says OSL=1K"
+    },
+    "speculative_decoding": {
+      "value": "MTP=1",
+      "status": "explicit",
+      "evidence": "screenshot subtitle"
+    },
+    "framework": {
+      "value": "vllm 0.26.0",
+      "status": "explicit",
+      "evidence": "H20 footer in screenshot"
+    },
+    "quantization": {
+      "value": "MXFP4+FP8",
+      "status": "explicit",
+      "evidence": "screenshot subtitle"
+    },
+    "kv_cache_dtype": {
+      "value": "fp8",
+      "status": "explicit",
+      "evidence": "screenshot subtitle"
+    },
+    "latency_statistic": {
+      "value": "arithmetic_mean_over_formal_requests",
+      "status": "explicit",
+      "evidence": "User confirmed mean; evaluation_policy.json"
+    },
+    "throughput_definition": {
+      "value": "input_plus_output_tokens_per_benchmark_duration",
+      "status": "explicit",
+      "evidence": "User confirmed total input plus output token throughput"
+    }
+  },
+  "reference_metrics": {
+    "tpot_lt_10ms_total_tok_s": 3048.35,
+    "tpot_lt_20ms_total_tok_s": 6248.65,
+    "tpot_lt_30ms_total_tok_s": 7303.19
+  },
+  "repeats": 1,
+  "tolerance": 0.10
+}

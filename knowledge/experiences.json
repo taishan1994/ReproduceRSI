@@ -1,0 +1,480 @@
+{
+  "schema_version": 1,
+  "description": "可跨任务检索的实验经验。每条经验限定适用范围并附证据；hypothesis 只用于提出下一步验证，不作为已确认根因。",
+  "experiences": [
+    {
+      "id": "vllm-cudagraph-capture-ceiling-001",
+      "title": "vLLM CUDA Graph 捕获上限外的并发批次可能出现性能断崖",
+      "status": "hypothesis",
+      "tags": [
+        "vllm",
+        "cuda-graph",
+        "cudagraph",
+        "batch-size",
+        "concurrency",
+        "throughput",
+        "tpot",
+        "decode",
+        "h20"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1",
+        "model": "DeepSeek-V4-Flash 0731",
+        "parallelism": "TP2+PP2",
+        "capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "workload": "synthetic ISL=8192, OSL=1024, no speculative decoding",
+        "other_tasks": "仅作为相同/相近 vLLM CUDA Graph 调度的排查线索；须核对版本、模型和配置"
+      },
+      "observation": "本任务并发16 mean TPOT=25.707 ms、总吞吐=4949.21 token/s；TP2+PP2 无推测解码并发18 mean TPOT=75.697 ms、总吞吐=2049.93 token/s。服务捕获形状仅到16。vLLM 0.27.1 文档说明超出最大捕获尺寸时不会使用已捕获图。扩展捕获集合到32的启动对照在捕获进度6/7时于 custom_all_reduce.cuh:164 报 illegal memory access，未产生压测数据；具体触发形状仍需根据日志确认。性能断崖的根因仍待验证。此低吞吐点属于额外 TP2+PP2 no-spec 探索，不能与图中的 TP4 MTP=1 Decode 混比。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/status_summary.md: c16/c18 单轮结果和运行条件",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: V1/Graph16 c16/c18 baseline: c18 mean TPOT 75.697 ms、总吞吐 2049.93 token/s",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph16 baseline conditions",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph32 custom-AR startup failure summary: startup failed at graph capture progress 6/7 with custom_all_reduce illegal memory access",
+        "https://docs.vllm.ai/en/v0.27.1/api/vllm/config/vllm/"
+      ],
+      "reuse": "出现性能随并发突然恶化时，先采集运行中的实际 capture sizes 和有效批次；将最大捕获形状覆盖到目标批次后做单变量 A/B，并记录启动时间、显存和吞吐。未验证前不要把它报告为根因，也不要把跨阈值点外推为单调边界。",
+      "confidence": "中等：机制有版本文档支持，因果对照未完成"
+    },
+    {
+      "id": "vllm-deepseek-mtp-pipeline-parallel-001",
+      "title": "DeepSeek MTP draft 路径可能不支持流水线并行",
+      "status": "failed_attempt",
+      "tags": [
+        "vllm",
+        "deepseek",
+        "mtp",
+        "speculative-decoding",
+        "pipeline-parallel",
+        "pp",
+        "startup-failure"
+      ],
+      "scope": {
+        "framework": "本任务检查的 vLLM 0.26/0.27 实现",
+        "model": "DeepSeek-V4 MTP draft model",
+        "parallelism": "PP=2",
+        "other_tasks": "只对检查过的版本成立；升级或改用其他后端前重新核对 SupportsPP/并行约束"
+      },
+      "observation": "TP2+PP2、MTP=1 启动时因 draft model 不支持 PP 而失败；相关本地类未声明 SupportsPP，draft 并行配置继承 target 的 pipeline parallel 大小。该次没有有效性能数据。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: PP=2 MTP=1 unsupported on this vLLM version",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: tested PP=2 MTP=1 limitation"
+      ],
+      "reuse": "遇到推测解码与 PP 组合，先查当前版本 draft model 的能力声明和并行配置校验，再启动整套服务；启动失败保留为兼容性证据，不能用 no-spec 测试冒充 MTP 结果。",
+      "confidence": "高：限定于已检查的本地版本"
+    },
+    {
+      "id": "benchmark-request-count-and-token-audit-001",
+      "title": "吞吐异常时逐请求审计正式请求数和服务端 token 长度",
+      "status": "confirmed",
+      "tags": [
+        "benchmark",
+        "throughput",
+        "tokens-per-second",
+        "aiperf",
+        "request-count",
+        "token-count",
+        "validation"
+      ],
+      "scope": {
+        "framework": "AIPerf/vLLM 基准复现",
+        "other_tasks": "所有合成或固定长度的 LLM 吞吐测试"
+      },
+      "observation": "单看汇总吞吐不足以排除请求数、预热请求混入、输入输出长度不符或失败请求造成的口径偏差。本项目按正式请求逐条核验数量、成功状态和服务端输入/输出 token 长度，并与汇总 mean 对账。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/chart_reproduction_audit.md: final request counts and latency/throughput points"
+      ],
+      "reuse": "每个测点保存原始逐请求导出；先剔除/区分预热请求，再核对正式请求数、失败数、服务端 token 长度和汇总指标。总吞吐口径明确写成 (input_tokens + output_tokens) / elapsed_time，并和工具报告交叉核验。",
+      "confidence": "高：多测点逐请求核验通过"
+    },
+    {
+      "id": "pp-latency-nonmonotonic-search-001",
+      "title": "PP 延迟可能非单调，二分搜索不能直接当全局边界",
+      "status": "confirmed",
+      "tags": [
+        "pipeline-parallel",
+        "pp",
+        "latency",
+        "ttft",
+        "non-monotonic",
+        "search",
+        "boundary"
+      ],
+      "scope": {
+        "framework": "本任务 TP2+PP2 vLLM 测量",
+        "other_tasks": "流水线并行和调度敏感型负载；须先观察当前任务数据"
+      },
+      "observation": "TP2+PP2 V2 补丁 Prefill 并发2 mean TTFT 约1512 ms（高于1.5 s），并发3约1197 ms（低于1.5 s）；实测证实并发延迟非单调。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: V2 patch and final prefll selection"
+      ],
+      "reuse": "边界搜索每轮检查已测点的单调性；若出现通过/失败交错，停止二分外推，改做有预算的局部扫描，并将结论限定为已测点。",
+      "confidence": "高：观测数据直接显示非单调"
+    },
+    {
+      "id": "single-round-evidence-strength-001",
+      "title": "单轮基准可判 mean 阈值，但不能代表重复稳定性",
+      "status": "confirmed",
+      "tags": [
+        "benchmark",
+        "single-run",
+        "mean",
+        "standard-deviation",
+        "repeatability",
+        "evaluation"
+      ],
+      "scope": {
+        "framework": "ReproduceRSI 单轮评估",
+        "other_tasks": "用户明确限制每个测点只跑一轮的基准任务"
+      },
+      "observation": "用户要求每个并发点只运行一轮。RSI 评估器允许 repeats=1，计算正式请求均值、将标准差留空，并把结果标注为 Single-Run Provisional 或 Single-Run Approximate。",
+      "evidence": [
+        "autoreproduce/core.py: 单轮统计强度和状态处理",
+        "projects/PRO6000D/reproduction/evaluation_policy.json: 每点单轮策略"
+      ],
+      "reuse": "单轮条件下仍核对正式请求数、错误率、服务端 token 长度和请求级 mean；不要计算或臆造跨轮方差，也不要把单轮过阈值解释为稳定边界。",
+      "confidence": "高：由评估器约束并显式报告统计强度"
+    },
+    {
+      "id": "vllm-tp2pp2-graph32-capture-failure-001",
+      "title": "当前 H20 vLLM TP2+PP2 在捕获 batch 32 时初始化失败",
+      "status": "failed_attempt",
+      "tags": [
+        "vllm",
+        "cuda-graph",
+        "batch-size-32",
+        "pipeline-parallel",
+        "illegal-memory-access",
+        "custom-all-reduce",
+        "startup-failure"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1 Humming",
+        "model": "DeepSeek-V4-Flash 0731",
+        "parallelism": "TP2+PP2 on H20 GPU 0-3",
+        "capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32
+        ]
+      },
+      "observation": "以只扩展 CUDA Graph capture sizes 的单变量启动对照中，服务完成模型加载并进入 7 个形状的捕获阶段，随后 custom_all_reduce.cuh:164 报 CUDA illegal memory access，EngineCore 初始化失败，未启动 HTTP 服务，也没有有效压测数据。日志进度为 6/7；可能与最后一个捕获形状有关，但仅凭进度不能确定具体尺寸或内核因果。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph32 custom-AR startup failure summary",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph32 startup failure and no valid benchmark data",
+        "https://docs.vllm.ai/en/v0.27.1/cli/serve/ (disable-custom-all-reduce falls back to NCCL)"
+      ],
+      "reuse": "该版本/配置下不要直接假设捕获尺寸 32 可用。失败轮不进入性能均值；保留日志。vLLM 0.27.1 提供 --disable-custom-all-reduce，可回退到 NCCL；若用于验证，应在相同 graph32 配置下只加入该开关并先做健康检查。若仍失败，再用只到 24 的捕获集做隔离启动对照。其他版本、模型和 GPU 需要重新验证。",
+      "confidence": "高：启动失败由服务日志直接记录；具体触发的 capture size 未确认"
+    },
+    {
+      "id": "vllm-disable-custom-all-reduce-insufficient-001",
+      "title": "禁用 custom all-reduce 后 Graph32 仍未能初始化该 DeepSeek-V4 服务",
+      "status": "failed_attempt",
+      "tags": [
+        "vllm",
+        "custom-all-reduce",
+        "disable-custom-all-reduce",
+        "deepgemm",
+        "fp8-gemm",
+        "cuda-graph",
+        "pipeline-parallel"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1 Humming",
+        "model": "DeepSeek-V4-Flash 0731",
+        "parallelism": "TP2+PP2 on H20 GPU 0-3",
+        "capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32
+        ]
+      },
+      "observation": "加入 --disable-custom-all-reduce 后，CUDA Graph capture 进度达到 7/7，但服务随后在 DeepGEMM 的 fp8_gemm_nt warmup 中出现 CUDA illegal memory access / CUBLAS execution failed，健康检查未就绪，没有基准请求或性能结果。该开关改变了路径但没有单独修复启动问题。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph32 NCCL startup failure summary",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph32 NCCL startup failure",
+        "https://docs.vllm.ai/en/v0.27.1/cli/serve/"
+      ],
+      "reuse": "不要把禁用 custom all-reduce 视作 Graph32/DeepSeek-V4 启动问题的通用修复。仅在与基线并行配置相同的单变量对照中使用；启动异常时检查完整首个 CUDA 异常栈，后续 CUBLAS 错误可能是异步错误的次级表现。",
+      "confidence": "高：该失败路径由本次启动日志直接记录；不外推其他模型和版本"
+    },
+    {
+      "id": "vllm-tp2pp2-graph24-nccL-single-c18-001",
+      "title": "H20 TP2+PP2 Graph24 加 NCCL 可启动，c18 单轮 TPOT 降至31.3ms",
+      "status": "confirmed",
+      "tags": [
+        "vllm",
+        "cuda-graph",
+        "pipeline-parallel",
+        "disable-custom-all-reduce",
+        "nccl",
+        "throughput",
+        "tpot",
+        "h20"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1 Humming",
+        "model": "DeepSeek-V4-Flash 0731",
+        "parallelism": "TP2+PP2 on H20 GPU 0-3",
+        "capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24
+        ],
+        "workload": "no-spec, synthetic ISL=8192/OSL=1024, c18, one round"
+      },
+      "observation": "Graph24 + --disable-custom-all-reduce 服务健康检查通过。并发18单轮180个正式请求全部成功，mean TTFT=3421.480 ms、mean TPOT=31.335 ms、总吞吐=4673.220 token/s。相较旧 Graph16+custom-AR 的 c18（75.697 ms / 2049.93 token/s）明显改善，但两项配置因素同时不同，不能据此断定单一原因。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph24 NCCL c18 result",
+        "projects/PRO6000D/reproduction/rsi_iterations.md"
+      ],
+      "reuse": "把 Graph capture 尺寸覆盖到目标并发批次可能有帮助，但当改变通信实现时要保留单变量对照。按固定 Graph24 重跑 custom-AR 开启/禁用，比较初始化稳定性、mean TPOT、总吞吐与 KV cache，且单轮结论不代表可重复稳定性。",
+      "confidence": "高：请求数、成功率、服务端 token 长度及 AIPerf mean 已核验；因果归因尚未完成"
+    },
+    {
+      "id": "vllm-tp2pp2-graph24-custom-ar-c18-single-001",
+      "title": "固定 Graph24 的 c18 单轮对照中，custom all-reduce 开启略快",
+      "status": "confirmed_single_run",
+      "tags": [
+        "vllm",
+        "cuda-graph",
+        "pipeline-parallel",
+        "custom-all-reduce",
+        "nccl",
+        "throughput",
+        "tpot",
+        "h20",
+        "single-run"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1 Humming",
+        "model": "DeepSeek-V4-Flash 0731",
+        "parallelism": "TP2+PP2 on H20 GPU 0-3",
+        "capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24
+        ],
+        "workload": "no-spec, synthetic ISL=8192/OSL=1024, c18, one round each"
+      },
+      "observation": "Graph24 固定时，custom all-reduce 开启单轮 mean TPOT=30.886 ms、总吞吐=4735.982 token/s；关闭并回退 NCCL 单轮为31.335 ms、4673.220 token/s。开启约快1.4% TPOT、1.3%吞吐。两配置服务均健康；开启配置预热20/20成功，正式请求180/180成功。两组仅各一轮，顺序效应和运行间波动未知，均未达到30ms。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph24 custom-AR c18 result",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: Graph24 custom-AR c18 result",
+        "projects/PRO6000D/reproduction/rsi_iterations.md"
+      ],
+      "reuse": "在固定 graph capture 等配置的前提下比较通信后端；报告单轮结果时标明 provisional，不能由小幅差异认定稳定收益。总吞吐统一核算为 input_tok_s + output_tok_s。",
+      "confidence": "中：请求完成数、零错误、预热数和汇总指标已核验；单轮不足以评估方差或顺序效应"
+    },
+    {
+      "id": "h20-vllm0271-tp2pp2-v2-prefill-warmup-patch-001",
+      "title": "图脚注 V2 decode warmup 开关需在已装 vLLM 代码中实现才生效",
+      "status": "confirmed_single_run",
+      "tags": [
+        "vllm",
+        "v2-model-runner",
+        "warmup",
+        "pipeline-parallel",
+        "prefill",
+        "benchmark-reproduction"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1 Humming",
+        "model": "DeepSeek-V4-Flash 0731",
+        "parallelism": "TP2+PP2 on H20 GPU 0-3",
+        "workload": "synthetic ISL=8192/OSL=1, V2 Prefill"
+      },
+      "observation": "原镜像的 warmup.py 不包含 VLLM_SKIP_V2_DECODE_WARMUP 实现；已保存原文件并应用隔离补丁后，四个 worker 均记录跳过 V2 decode warmup，服务通过健康检查。沿用 V2 warmup 补丁与默认 custom all-reduce 配置时，单轮 c3 和 c7 分别 30/30 与70/70 正式请求成功，mean TTFT=1198.200/2713.484 ms，总吞吐=19812.313/20227.167 token/s，分别满足图中1.5s/3s门槛；吞吐仍比图中高约25.6%/28.2%。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: V2 warmup patch c3/c7 validation",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: V2 warmup patch c3/c7 validation",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: V2 warmup patch validation",
+        "projects/PRO6000D/reproduction/warmup.py.v1.bak"
+      ],
+      "reuse": "图中环境变量只有在当前安装代码读取该变量时才有效；启动后核验每个并行 worker 都打印跳过日志，并先做健康检查。记录原始源文件哈希或备份，补丁配置和官方未修改环境要分开标注。单轮只支持单轮结论。",
+      "confidence": "中：补丁路径、四个 worker 日志、健康检查及正式请求清单均核验；仍是单轮，且使用了兼容补丁"
+    },
+    {
+      "id": "h20-vllm0271-tp2pp2-prefill-custom-ar-ab-001",
+      "title": "V2 TP2+PP2 Prefill 的 c3/c7 单轮中禁用 custom all-reduce 性能影响极小",
+      "status": "confirmed_single_run",
+      "tags": [
+        "vllm",
+        "custom-all-reduce",
+        "nccl",
+        "v2-model-runner",
+        "pipeline-parallel",
+        "prefill",
+        "benchmark-reproduction"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1 Humming with V2 warmup compatibility patch",
+        "model": "DeepSeek-V4-Flash 0731",
+        "parallelism": "TP2+PP2 on H20 GPU 0-3",
+        "capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "workload": "synthetic ISL=8192/OSL=1, c3 and c7, one round each"
+      },
+      "observation": "相同配置下默认 custom all-reduce 与 --disable-custom-all-reduce 两种服务均成功启动，四个 worker 均跳过 V2 decode warmup。c3总吞吐19812.313 vs19795.949 token/s（开/关），c7为20227.167 vs20224.983 token/s；关闭开关带来的吞吐变化仅-0.08%/-0.01%，TTFT变化小于1ms。该开关不能解释本项目 TP2+PP2 Prefill 相对图表高约26–28%的吞吐。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/rsi_iterations.md: V2 warmup patch c3/c7 validation",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: V2 warmup patch c3/c7 validation",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: c3/c7 custom-AR A/B",
+        "projects/PRO6000D/reproduction/rsi_iterations.md: c3/c7 custom-AR A/B",
+        "projects/PRO6000D/reproduction/rsi_iterations.md"
+      ],
+      "reuse": "对通信开关做 A/B 时固定其他服务参数及请求负载，并保存两种启动日志。小于1%的单轮差异不应被当作可靠性能收益；若差异远小于目标偏差，则把后续排查重点移到 workload、tokenizer、模型版本或其他调度配置。",
+      "confidence": "中：两种配置的正式请求均无错误、长度和均值均已核验；每点每配置只有一轮"
+    },
+    {
+      "id": "deepseek-v4-flash-preview-vs-0731-benchmark-001",
+      "title": "DeepSeek-V4-Flash Preview 与 0731 是不同权重版本，不能合并成同一性能曲线",
+      "status": "confirmed",
+      "tags": [
+        "deepseek-v4",
+        "model-revision",
+        "benchmark-reproduction",
+        "mtp",
+        "throughput"
+      ],
+      "scope": {
+        "model_family": "DeepSeek-V4-Flash",
+        "benchmark": "H20 TP4/TP2+PP2 chart reproduction"
+      },
+      "observation": "ModelScope 官方模型卡将 DeepSeek-V4-Flash-0731 标为正式版并说明其取代 Preview 且能力增强；本复现的 TP4 Prefill/TP2+PP2 Prefill 使用0731，TP4 MTP=1 Decode使用Preview权重。故不同图表测量不可合并为同一权重曲线。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/chart_reproduction_audit.md",
+        "https://modelscope.cn/models/deepseek-ai/DeepSeek-V4-Flash-0731/"
+      ],
+      "reuse": "复现图表前逐项登记模型仓库和revision；若图中没有revision而本地测点必须使用不同权重，清楚标记近似复现，避免将不同模型版本的指标拼接比较。",
+      "confidence": "高：官方模型卡明确描述版本关系；图表原权重版本仍未给出"
+    },
+    {
+      "id": "reproducersi-single-run-default-consistency-001",
+      "title": "单轮策略必须同步 evaluator、planner、spec 与 runner，避免单轮被当成未完成",
+      "status": "confirmed_fix",
+      "tags": [
+        "reproducersi",
+        "single-run",
+        "planner",
+        "sla",
+        "benchmark-safety",
+        "no-overwrite"
+      ],
+      "scope": {
+        "framework": "ReproduceRSI",
+        "policy": "user-selected one formal round per concurrency"
+      },
+      "observation": "项目 spec 与 run_sweep 已使用单轮，但 evaluator 和 planner 默认仍为三轮，TP4 Prefill runner 固定循环3次；这会使刚完成的单轮点显示 incomplete，且旧 runner 可覆盖已存在日志。已统一默认 repeats=1、mean 判定，活动 runner 显式传入单轮并添加覆盖保护；历史三轮 helper 显式保留 repeats=3 仅用于读取旧数据。",
+      "evidence": [
+        "autoreproduce/core.py",
+        "autoreproduce/planner.py",
+        "autoreproduce/sla.py",
+        "autoreproduce/sla_report.py",
+        "projects/PRO6000D/reproduction/run_sweep.py: final one-round benchmark runner",
+        "projects/PRO6000D/reproduction/evaluation_policy.json",
+        "projects/PRO6000D/reproduction/rsi_iterations.md"
+      ],
+      "reuse": "修改测量轮数时同步规格默认值、SLA evaluator、规划器、报告 CLI 和所有 runner；单轮正式请求数仍按并发×10。历史多轮报告需显式指明样本数，不能让旧摘要改变新实验轮数。写文件前拒绝覆盖同名原始结果与日志。",
+      "confidence": "高：运行策略与代码默认逐项核对，规格 JSON 已解析；未运行软件测试"
+    },
+    {
+      "id": "h20-tp2pp2-v2-no-mtp-decode-reproduces-user-reference-001",
+      "title": "TP2+PP2 无 MTP Decode：V2 runner 将 c16/c30 单轮结果拉近用户参考",
+      "status": "confirmed_single_run",
+      "tags": [
+        "deepseek-v4",
+        "vllm",
+        "tp2-pp2",
+        "decode",
+        "no-mtp",
+        "v2-model-runner",
+        "benchmark-reproduction"
+      ],
+      "scope": {
+        "framework": "vLLM 0.27.1 Humming",
+        "model": "DeepSeek-V4-Flash-0731",
+        "parallelism": "TP2+PP2 H20 GPU 0-3",
+        "capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24
+        ],
+        "workload": "synthetic ISL=8192/OSL=1024, concurrency 4/16/30, one formal round each, 20 warmup",
+        "speculative_decoding": false,
+        "custom_all_reduce": false
+      },
+      "observation": "用户明确其 Decode 表格是 TP2+PP2、无 MTP。V2 runner 单轮 c4/c16/c30 mean TPOT=9.814/18.197/28.893 ms，均满足<10/<20/<30 ms；总吞吐=3105.946/6736.927/8355.194 token/s，用户参考为3452/6680/8118 token/s，差异约-10.03%/+0.85%/+2.92%。相较同配置 V1 runner 的吞吐2588.544/4843.708/2962.369，V2 在 c30尤其显著。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/user_reference_tp2pp2_decode_nospec.json",
+        "projects/PRO6000D/reproduction/tp2pp2_decode_nospec_v2_comparison.json",
+        "projects/PRO6000D/reproduction/rsi_iterations.md"
+      ],
+      "reuse": "当 no-MTP TP2+PP2 Decode 与目标差距异常大时，核对是否启用 V2 Model Runner、模型修订、Graph 捕获上限、NCCL/custom-all-reduce与输入/输出长度；先用相同负载做单轮对照并分开保存用户参考及实测。单轮结果接近不能证明稳定等价。",
+      "confidence": "中：三点正式请求均成功且请求数、长度受 runner 校验；每并发仅一轮，且用户参考缺少完整模型与负载元数据。"
+    },
+    {
+      "id": "h20-chart-thresholds-tp4-tp2pp2-single-round-001",
+      "title": "H20 DeepSeek-V4-Flash 三张图的 TTFT/TPOT 门槛通过点需按单轮策略逐项复核",
+      "status": "confirmed_single_round",
+      "tags": [
+        "h20",
+        "deepseek-v4-flash",
+        "tp4",
+        "tp2-pp2",
+        "prefill",
+        "decode",
+        "mtp",
+        "benchmark-reproduction",
+        "single-round"
+      ],
+      "scope": {
+        "frameworks": "vLLM 0.26.0 for TP4; vLLM 0.27.1 for TP2+PP2",
+        "hardware": "H20 GPU0-3",
+        "sampling": "One formal round per concurrency; request_count=10x concurrency; mean latency",
+        "reference": "User supplied three chart images in projects/PRO6000D/resources"
+      },
+      "observation": "2026-11-04 单轮复核：TP4 Prefill c2/c5 mean TTFT=1148.542/2797.358ms。TP4 Preview MTP=1 Decode 按图值最接近的点c3/c12/c27 mean TPOT=7.218/14.659/29.590ms，总吞吐较图值+8.41%/+8.05%/+4.96%，均在±10%容差；c29单轮31.236ms未达30ms。TP2+PP2 V2-patched Prefill固定Graph16、NCCL、ISL8192/OSL1时扫描max_num_batched_tokens：8192吞吐高25-28%，6144/4096仍高约20-25%；2048时c3/c6 TTFT=1400.060/2759.842ms，总吞吐16948.565/17054.881 token/s，较图+7.44%/+8.10%，均满足延迟阈值和吞吐±10%。同配置c7 TTFT3214.073ms未过3s。ReproduceRSI SLA best_observed为TP4 Decode c4/c16/c27，吞吐匹配点另为c3/c12/c27；TP2+PP2在2048批上限报告中best为c3/c6。",
+      "evidence": [
+        "projects/PRO6000D/reproduction/chart_recheck_20261104_summary.json",
+        "projects/PRO6000D/reproduction/throughput_tuning_20261104.json",
+        "projects/PRO6000D/reproduction/tp2pp2_prefill_mnbt_sweep_20261104.json",
+        "projects/PRO6000D/reproduction/chart_sla_rollup_20261104.json",
+        "projects/PRO6000D/reproduction/chart_reproduction_audit.md",
+        "projects/PRO6000D/reproduction/rsi_iterations.md",
+        "/mnt/md0/reproducersi/dsv4_20261103/results/chart_sla_reports_20261104"
+      ],
+      "reuse": "按每个图表门槛分别保存并发、正式请求数、mean延迟和输入+输出总吞吐；单轮失败点保留。长输入prefill吞吐偏高且batch上限未指定时，可固定并行度、Graph、all-reduce、长度和runner，单变量扫描max_num_batched_tokens，检查TTFT及吞吐是否共同达标；所得数值必须限定到当前模型、框架和请求负载，不能无证据推广。不得以历史多轮平均覆盖用户要求的单轮结果。",
+      "confidence": "中高：run_sweep逐点核验请求数、token长度和错误率，正式请求全部成功；每点一轮且原图未披露完整workload/model revision，严格同条件仍无法证实。"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-04",
+  "goal": "Match chart throughput within configured ±10% tolerance while satisfying mean TPOT gate",
+  "remote_artifact_root": "/mnt/md0/reproducersi/dsv4_20261103/results",
+  "tp4_decode_mtp1": [
+    {
+      "concurrency": 3,
+      "pass_throughput_tolerance": true,
+      "reference_total_tok_s": 3048.35,
+      "delta_percent": 8.41,
+      "total_tok_s": 3304.771389,
+      "pass_latency": true,
+      "tpot_ms": 7.2179398,
+      "requests": 30,
+      "run_id": "tp4_decode_mtp1_chart_throughput_tune_c3_20261104_c3_r1"
+    },
+    {
+      "concurrency": 4,
+      "pass_throughput_tolerance": false,
+      "reference_total_tok_s": 3048.35,
+      "delta_percent": 36.8,
+      "total_tok_s": 4169.989769,
+      "pass_latency": true,
+      "tpot_ms": 7.831753,
+      "requests": 40,
+      "run_id": "tp4_decode_mtp1_chart_throughput_tune_20261104_c4_r1"
+    },
+    {
+      "concurrency": 12,
+      "pass_throughput_tolerance": true,
+      "reference_total_tok_s": 6248.65,
+      "delta_percent": 8.05,
+      "total_tok_s": 6751.639875,
+      "pass_latency": true,
+      "tpot_ms": 14.6589044,
+      "requests": 120,
+      "run_id": "tp4_decode_mtp1_chart_throughput_tune_20261104_c12_r1"
+    }
+  ],
+  "tp2pp2_prefill": [
+    {
+      "requests": 20,
+      "pass_ttft_lt_1500ms": false,
+      "run_id": "tp2pp2_prefill_chart_throughput_tune_graph16_20261104_c2_r1",
+      "concurrency": 2,
+      "reference_total_tok_s": 15775.08,
+      "total_tok_s": 10526.381,
+      "ttft_ms": 1514.436
+    },
+    {
+      "requests": 40,
+      "run_id": "tp2pp2_prefill_chart_throughput_tune_graph16_20261104_c4_r1",
+      "concurrency": 4,
+      "pass_ttft_lt_3000ms": true,
+      "reference_total_tok_s": 15776.39,
+      "total_tok_s": 20016.535,
+      "ttft_ms": 1574.9
+    },
+    {
+      "pass_ttft_lt_1500ms": false,
+      "reference_total_tok_s": 15775.08,
+      "ttft_ms": 1513.512,
+      "capture_sizes": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        24
+      ],
+      "requests": 20,
+      "run_id": "tp2pp2_prefill_chart_throughput_tune_20261104_c2_r1",
+      "concurrency": 2,
+      "total_tok_s": 10531.601
+    },
+    {
+      "reference_total_tok_s": 15776.39,
+      "ttft_ms": 1575.03,
+      "pass_ttft_lt_3000ms": true,
+      "capture_sizes": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        24
+      ],
+      "requests": 40,
+      "run_id": "tp2pp2_prefill_chart_throughput_tune_20261104_c4_r1",
+      "concurrency": 4,
+      "total_tok_s": 20013.885
+    }
+  ],
+  "summary": "For TP4 Decode, chart-close one-round candidates are c3/c12/c27 within ±10%; maximal-throughput points c4/c16 are higher and outside tolerance at <10ms/<20ms. For TP2+PP2 Prefill, max_num_batched_tokens=2048 yields c3/c6 within both latency gates and ±10% throughput tolerance; c7 misses TTFT<3s."
+}

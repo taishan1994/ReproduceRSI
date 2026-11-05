@@ -1,0 +1,73 @@
+{
+  "source_id": "PRO6000D-deepseek-v4-flash-images",
+  "spec_id": "h20-dsv4-flash-tp4-prefill-v1",
+  "policy_version": "0.5-user-mean-total-single-round",
+  "conditions": {
+    "gpu_model": {
+      "value": "H20",
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-prefill.png"
+    },
+    "gpu_count": {
+      "value": 4,
+      "status": "derived",
+      "evidence": "TP4 in source; single replica assumed"
+    },
+    "model": {
+      "value": "DeepSeek-V4-Flash-0731",
+      "status": "assumed",
+      "evidence": "resources/model_resources.txt; screenshot does not state revision"
+    },
+    "tensor_parallel": {
+      "value": 4,
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-prefill.png"
+    },
+    "pipeline_parallel": {
+      "value": 1,
+      "status": "assumed",
+      "evidence": "TP4 screenshot does not specify PP"
+    },
+    "input_tokens": {
+      "value": 8192,
+      "status": "assumed",
+      "evidence": "screenshot says ISL=8K"
+    },
+    "output_tokens": {
+      "value": 1,
+      "status": "explicit",
+      "evidence": "resources/deepseek-v4-flash-prefill.png"
+    },
+    "framework": {
+      "value": "vllm 0.26.0",
+      "status": "explicit",
+      "evidence": "H20 footer in screenshot"
+    },
+    "quantization": {
+      "value": "MXFP4+FP8",
+      "status": "explicit",
+      "evidence": "screenshot subtitle"
+    },
+    "kv_cache_dtype": {
+      "value": "fp8",
+      "status": "explicit",
+      "evidence": "screenshot subtitle"
+    },
+    "latency_statistic": {
+      "value": "arithmetic_mean_over_formal_requests",
+      "status": "explicit",
+      "evidence": "User confirmed mean; evaluation_policy.json"
+    },
+    "throughput_definition": {
+      "value": "input_plus_output_tokens_per_benchmark_duration",
+      "status": "explicit",
+      "evidence": "User confirmed total input plus output token throughput"
+    }
+  },
+  "reference_metrics": {
+    "ttft_lt_1500ms_throughput": 13139.12,
+    "ttft_lt_3000ms_throughput": 13177.65
+  },
+  "repeats": 1,
+  "tolerance": 0.1
+}

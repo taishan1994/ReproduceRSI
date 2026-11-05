@@ -1,0 +1,14 @@
+{
+  "policy_version": "0.5-user-mean-total-single-round",
+  "source": "User instruction: use mean",
+  "latency_statistic": "arithmetic mean over formal requests in the single formal round",
+  "request_count": "10 times concurrency",
+  "independent_repeats": 1,
+  "primary_pass_rule": "arithmetic mean over formal requests in the single round strictly below threshold",
+  "statistical_strength": "single_round_no_between_run_variance_claim",
+  "also_report": [
+    "single-round formal request count and mean",
+    "P99 as auxiliary only"
+  ],
+  "reference_chart_throughput_definition": "total input plus output tokens per benchmark duration (user confirmed)"
+}

@@ -1,0 +1,6 @@
+resources/GPU_resources.txt
+
+__pycache__/
+*.py[cod]
+report.json
+projects/*/reproduction/_pending_delete_*/

@@ -1,0 +1,112 @@
+{
+  "date": "2026-11-04",
+  "host": "H20",
+  "gpu_ids": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "measurement": "one formal round per concurrency; request_count=10x concurrency; warmup_requests=20; mean latency; total throughput=input+output token/s",
+  "remote_artifact_root": "/mnt/md0/reproducersi/dsv4_20261103/results",
+  "tp4_prefill": [
+    {
+      "concurrency": 2,
+      "run_id": "tp4_prefill_chart_recheck_20261104_c2_c2_r1",
+      "total_tok_s": 13887.0987158,
+      "requests": 20,
+      "reference_total_tok_s": 13139.12,
+      "pass": true,
+      "ttft_ms": 1148.5420967
+    },
+    {
+      "concurrency": 5,
+      "run_id": "tp4_prefill_chart_recheck_20261104_c5_c5_r1",
+      "total_tok_s": 14045.801415,
+      "requests": 50,
+      "reference_total_tok_s": 13177.65,
+      "pass": true,
+      "ttft_ms": 2797.35840478
+    }
+  ],
+  "tp4_decode_mtp1_closest_throughput": [
+    {
+      "tpot_ms": 7.2179398,
+      "pass_throughput_tolerance": true,
+      "reference_total_tok_s": 3048.35,
+      "total_tok_s": 3304.771389,
+      "pass_latency": true,
+      "requests": 30,
+      "delta_percent": 8.41,
+      "run_id": "tp4_decode_mtp1_chart_throughput_tune_c3_20261104_c3_r1",
+      "concurrency": 3
+    },
+    {
+      "tpot_ms": 14.6589044,
+      "pass_throughput_tolerance": true,
+      "reference_total_tok_s": 6248.65,
+      "total_tok_s": 6751.639875,
+      "pass_latency": true,
+      "requests": 120,
+      "delta_percent": 8.05,
+      "run_id": "tp4_decode_mtp1_chart_throughput_tune_20261104_c12_r1",
+      "concurrency": 12
+    },
+    {
+      "tpot_ms": 29.5902815,
+      "pass_throughput_tolerance": true,
+      "reference_total_tok_s": 7303.19,
+      "total_tok_s": 7665.7251,
+      "pass_latency": true,
+      "requests": 270,
+      "delta_percent": 4.96,
+      "run_id": "tp4_decode_mtp1_chart_recheck_c27_20261104_c27_r1",
+      "concurrency": 27
+    }
+  ],
+  "tp2pp2_prefill": [
+    {
+      "total_tok_s": 16948.56467012063,
+      "max_num_batched_tokens": 2048,
+      "requests": 30,
+      "ttft_ms": 1400.0596108666664,
+      "delta_percent": 7.44,
+      "pass_latency": true,
+      "reference_total_tok_s": 15775.08,
+      "run_id": "tp2pp2_prefill_mnbt2048_20261104_c3_r1",
+      "pass_throughput_tolerance": true,
+      "concurrency": 3
+    },
+    {
+      "total_tok_s": 17054.88123646884,
+      "max_num_batched_tokens": 2048,
+      "requests": 60,
+      "ttft_ms": 2759.8417820666664,
+      "delta_percent": 8.1,
+      "pass_latency": true,
+      "reference_total_tok_s": 15776.39,
+      "run_id": "tp2pp2_prefill_mnbt2048_c6_20261104_c6_r1",
+      "pass_throughput_tolerance": true,
+      "concurrency": 6
+    }
+  ],
+  "other_single_round_candidates": [
+    "TP4 decode c5 TPOT=9.897 ms / 4123.735 token/s; c16=18.030 ms / 7362.697; c29=31.236 ms / 7825.098 (latency failure)",
+    "TP2+PP2 prefill graph16 c2=1514.436 ms / 10526.381 (TTFT failure for <1.5s), c4=1574.900 ms / 20016.535 (TTFT pass for <3s, throughput mismatch)"
+  ],
+  "tp2pp2_prefill_config": {
+    "max_num_batched_tokens": 2048,
+    "graph_capture_sizes": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "v2_model_runner": true,
+    "skip_v2_decode_warmup": true,
+    "custom_all_reduce": "disabled",
+    "model": "DeepSeek-V4-Flash-0731",
+    "parallelism": "TP2+PP2"
+  }
+}
